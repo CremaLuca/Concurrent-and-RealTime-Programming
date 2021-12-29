@@ -9,10 +9,6 @@
 #define BUFFER_SIZE 10
 #define N_MESSAGES 1000 // Number of messages produced by the producer
 
-// TODO: Get these parameters from the command line
-#define PORT 8080
-#define MAXLINE 1024
-
 // Inter-process communication (IPC) variables
 pthread_mutex_t mutex;
 pthread_cond_t canWrite, canRead;
