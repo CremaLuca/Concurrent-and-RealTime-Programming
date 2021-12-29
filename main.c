@@ -192,7 +192,7 @@ static void *monitor(void *arg)
         }
         pthread_mutex_unlock(&mutex);
 #ifdef DEBUG
-        printf("[Monitor thread]: read length: %d, produced: %d, %d ", length, produced, nConsumers);
+        printf("[Monitor thread]: queue: %d, produced: %d,", length, produced);
         for (int i = 0; i < nConsumers; i++)
         {
             printf(" [%d]: %d", i, consumed[i]);
