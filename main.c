@@ -172,6 +172,12 @@ static void *monitor(void *arg)
 #ifdef DEBUG
     printf("[Monitor thread]: Connected to monitor server\n");
 #endif
+    // Send the number of consumers to the monitor server
+    if (send(sockfd, &nConsumers, sizeof(nConsumers), 0) < 0)
+    {
+        perror("[Monitor thread]: number of consumers send failed");
+        exit(EXIT_FAILURE);
+    }
     int length;
     unsigned int netLength;
     while (1)
@@ -193,10 +199,16 @@ static void *monitor(void *arg)
         }
         printf("\n");
 #endif
-        // Convert the integer number into network byte order
-        netLength = htonl(length);
+        // TODO:
+        int monitor_msg[nConsumers + 2];
+        monitor_msg[0] = htonl(length);
+        monitor_msg[1] = htonl(produced);
+        for (int i = 0; i < nConsumers; i++)
+        {
+            monitor_msg[i + 2] = htonl(consumed[i]);
+        }
         // Actually send the length value
-        if (send(sockfd, &netLength, sizeof(netLength), 0) < 0)
+        if (send(sockfd, &monitor_msg, sizeof(monitor_msg), 0) < 0)
         {
             perror("[Monitor thread]: send failed");
             exit(EXIT_FAILURE);

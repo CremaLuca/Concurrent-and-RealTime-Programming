@@ -68,16 +68,29 @@ int main(int argc, char *args[])
             exit(EXIT_FAILURE);
         }
         printf("[Monitor server]: Accepted connection from %s\n", inet_ntoa(address.sin_addr));
-        int netLength;
-        while(1){
-            if (receive(new_socket, (char *)&netLength, sizeof(netLength)) < 0)
+        int nConsumers = 0;
+        if (receive(new_socket, (char *)&nConsumers, sizeof(int)) < 0)
+        {
+            perror("Socket receive failed");
+            exit(EXIT_FAILURE);
+        }
+        printf("[Monitor server]: Correctly received the number of consumers: %d.\n", nConsumers);
+        int monitor_msg[nConsumers + 2];
+        while (1)
+        {
+            if (receive(new_socket, (char *)&monitor_msg, sizeof(monitor_msg)) < 0)
             {
                 //perror("Socket receive failed");
-                //exit(EXIT_FAILURE); 
+                //exit(EXIT_FAILURE);
                 printf("[Monitor server]: Stopped receiving messages from %s\n", inet_ntoa(address.sin_addr));
                 break;
             }
-            printf("[Monitor server]: %d\n", ntohl(netLength));
+            printf("[Monitor server]: queue: %d, produced: %d", ntohl(monitor_msg[0]), ntohl(monitor_msg[1]));
+            for (int i = 2; i < nConsumers + 2; i++)
+            {
+                printf(", [%d]: %d", i - 2, ntohl(monitor_msg[i]));
+            }
+            printf("\n");
         }
         printf("[Monitor server]: Closing connection with %s\n", inet_ntoa(address.sin_addr));
         close(new_socket);
