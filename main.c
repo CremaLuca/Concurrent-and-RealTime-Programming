@@ -20,6 +20,8 @@ int buffer[BUFFER_SIZE];
 int writeIdx = 0;  // Next free slot in the buffer
 int readIdx = 0;   // Next slot to be read by a consumer
 char finished = 0; // True when the producer has produced all messages
+int produced = 0;  // Number of messages produced
+int *consumed;
 
 /**
  * @brief Stops the current thread for a given amount of nanoseconds.
@@ -82,6 +84,7 @@ static void *producer(void *arg)
 #endif
         buffer[writeIdx] = i; // Produce a message
         writeIdx = (writeIdx + 1) % BUFFER_SIZE;
+        produced += 1;
         // Tell consumers there is a new message
         pthread_cond_signal(&canRead);
         pthread_mutex_unlock(&mutex);
@@ -99,11 +102,12 @@ static void *producer(void *arg)
 /**
  * @brief 
  * 
- * @param arg Unused
+ * @param arg consumer_id
  */
 static void *consumer(void *arg)
 {
     int item;
+    int consumer_id = *((int *)arg);
     while (1)
     {
         pthread_mutex_lock(&mutex);
@@ -120,6 +124,7 @@ static void *consumer(void *arg)
         }
         item = buffer[readIdx];
         readIdx = (readIdx + 1) % BUFFER_SIZE; // Shift forward the read index
+        consumed[consumer_id - 1] += 1;
         pthread_cond_signal(&canWrite);
         pthread_mutex_unlock(&mutex);
 // Complex operation
@@ -134,6 +139,7 @@ static void *consumer(void *arg)
 struct monitor_data
 {
     int interval;
+    int nConsumers;
     struct sockaddr_in server_addr;
 };
 
@@ -148,6 +154,7 @@ static void *monitor(void *arg)
     // Parse thread arguments
     struct monitor_data *data = (struct monitor_data *)arg;
     int interval = data->interval;
+    int nConsumers = data->nConsumers;
     // Open a socket to the monitor server
     int sockfd;
     struct sockaddr_in server_addr = data->server_addr;
@@ -179,7 +186,12 @@ static void *monitor(void *arg)
         }
         pthread_mutex_unlock(&mutex);
 #ifdef DEBUG
-        printf("[Monitor thread]: read length: %d\n", length);
+        printf("[Monitor thread]: read length: %d, produced: %d, %d ", length, produced, nConsumers);
+        for (int i = 0; i < nConsumers; i++)
+        {
+            printf(" [%d]: %d", i, consumed[i]);
+        }
+        printf("\n");
 #endif
         // Convert the integer number into network byte order
         netLength = htonl(length);
@@ -199,9 +211,9 @@ static void *monitor(void *arg)
 int main(int argc, char *args[])
 {
     // Variables declaration
-    int nConsumers;             // Number of consumer threads
+    int nConsumers;      // Number of consumer threads
     char monitor_ip[16]; // Hostname of the monitor server
-    int monitor_port;           // Port of the monitor server
+    int monitor_port;    // Port of the monitor server
     if (argc != 5)
     {
         printf("Usage: %s <# consumers> <monitor ip> <monitor port> <monitor interval [s]>\n", args[0]);
@@ -216,18 +228,26 @@ int main(int argc, char *args[])
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&canWrite, NULL);
     pthread_cond_init(&canRead, NULL);
-    // Create producer and consumers threads
+
+    // Create producer thread
     pthread_t threads[nConsumers + 2];
-    printf("Starting producer and %d consumers\n", nConsumers);
+    printf("Starting producer\n");
     pthread_create(&threads[0], NULL, producer, NULL); // Producer
+
+    // Create consumer threads
+    printf("Creating %d consumer threads\n", nConsumers);
+    consumed = malloc(sizeof(int) * nConsumers); // Allocate memory for consumed counters
     for (int i = 1; i < nConsumers + 1; i++)
     {
         printf("Starting consumer %d\n", i);
-        pthread_create(&threads[i], NULL, consumer, NULL); // Consumer
+        int *id = malloc(sizeof(*id));
+        *id = i;
+        pthread_create(&threads[i], NULL, consumer, id); // Consumer
     }
     // Initialize monitor data
     struct monitor_data mdata = {
         interval : strtol(args[4], NULL, 10),
+        nConsumers : nConsumers,
         server_addr : {
             sin_family : AF_INET,
             sin_port : htons(monitor_port),
@@ -244,4 +264,5 @@ int main(int argc, char *args[])
     {
         pthread_join(threads[i], NULL);
     }
+    free(consumed);
 }
