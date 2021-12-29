@@ -3,9 +3,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #define BUFFER_SIZE 10
 #define N_MESSAGES 1000 // Number of messages produced by the producer
+
+// TODO: Get these parameters from the command line
+#define PORT 8080
+#define MAXLINE 1024
 
 // Inter-process communication (IPC) variables
 pthread_mutex_t mutex;
@@ -26,6 +32,16 @@ static void wait_ns(long ns)
     waitTime.tv_sec = 0;
     waitTime.tv_nsec = ns;
     nanosleep(&waitTime, NULL);
+}
+
+/**
+ * @brief Stops the current thread for a given amount of seconds.
+ * 
+ * @param s Amount of seconds to wait.
+ */
+static void wait_s(long s)
+{
+    sleep(s);
 }
 
 /**
@@ -61,7 +77,9 @@ static void *producer(void *arg)
         {
             pthread_cond_wait(&canWrite, &mutex);
         }
+#ifdef DEBUG
         printf("+ %d\n", i);
+#endif
         buffer[writeIdx] = i; // Produce a message
         writeIdx = (writeIdx + 1) % BUFFER_SIZE;
         // Tell consumers there is a new message
@@ -71,7 +89,9 @@ static void *producer(void *arg)
     // Broadcast all consumers that the producer has finished producing
     pthread_mutex_lock(&mutex);
     finished = 1;
-    printf("fin\n");
+#ifdef DEBUG
+    printf("[Producer]: finished.\n");
+#endif
     pthread_cond_broadcast(&canRead);
     pthread_mutex_unlock(&mutex);
     return NULL;
@@ -96,18 +116,26 @@ static void *consumer(void *arg)
         if (finished && readIdx == writeIdx)
         {
             pthread_mutex_unlock(&mutex);
-            return NULL;
+            break;
         }
         item = buffer[readIdx];
         readIdx = (readIdx + 1) % BUFFER_SIZE; // Shift forward the read index
         pthread_cond_signal(&canWrite);
         pthread_mutex_unlock(&mutex);
-        // Complex operation
+// Complex operation
+#ifdef DEBUG
         printf("- %d\n", item);
+#endif
         random_wait_ns(1E9);
     }
-    return NULL; // Unreachable
+    return NULL;
 }
+
+struct monitor_data
+{
+    int interval;
+    struct sockaddr_in server_addr;
+};
 
 /**
  * @brief Reads the length of the buffer at a given interval of time
@@ -115,38 +143,75 @@ static void *consumer(void *arg)
  * 
  * @param arg Pointer to an integer that contains the interval of time in us.
  */
-static void *monitor(void *arg){
-    int interval = *((int *)arg);
+static void *monitor(void *arg)
+{
+    // Parse thread arguments
+    struct monitor_data *data = (struct monitor_data *)arg;
+    int interval = data->interval;
+    // Open a socket to the monitor server
+    int sockfd;
+    struct sockaddr_in server_addr = data->server_addr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("[Monitor thread]: socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    {
+        perror("[Monitor thread]: socket connection failed");
+        exit(EXIT_FAILURE);
+    }
+#ifdef DEBUG
+    printf("[Monitor thread]: Connected to monitor server\n");
+#endif
     int length;
-    while(1){
+    unsigned int netLength;
+    while (1)
+    {
         pthread_mutex_lock(&mutex);
         length = (writeIdx - readIdx + BUFFER_SIZE) % BUFFER_SIZE;
         // NOTE: Last length 0 will never be notified to the monitor server
         if (finished && readIdx == writeIdx)
         {
             pthread_mutex_unlock(&mutex);
-            return NULL;
+            break;
         }
         pthread_mutex_unlock(&mutex);
-        printf("length: %d\n", length);
-        wait_ns(interval);
+#ifdef DEBUG
+        printf("[Monitor thread]: read length: %d\n", length);
+#endif
+        // Convert the integer number into network byte order
+        netLength = htonl(length);
+        // Actually send the length value
+        if (send(sockfd, &netLength, sizeof(netLength), 0) < 0)
+        {
+            perror("[Monitor thread]: send failed");
+            exit(EXIT_FAILURE);
+        }
+        // Wait for the next sample time
+        wait_s(interval);
     }
+    close(sockfd);
     return NULL;
 }
 
 int main(int argc, char *args[])
 {
     // Variables declaration
-    int nConsumers; // Number of consumer threads
-
-    // Arguments parsing
-    if (argc != 3)
+    int nConsumers;             // Number of consumer threads
+    char monitor_ip[16]; // Hostname of the monitor server
+    int monitor_port;           // Port of the monitor server
+    if (argc != 5)
     {
-        printf("Usage: main <# consumers> <monitor interval [us]>\n");
-        exit(0);
+        printf("Usage: %s <# consumers> <monitor ip> <monitor port> <monitor interval [s]>\n", args[0]);
+        exit(EXIT_FAILURE);
     }
-    // Read the number of consumers from the first argument
-    sscanf(args[1], "%d", &nConsumers);
+    // Parse arguments
+    nConsumers = strtol(args[1], NULL, 10);
+    sscanf(args[2], "%s", monitor_ip);
+    monitor_port = strtol(args[3], NULL, 10);
+
     // Initialize mutex and condition variables
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&canWrite, NULL);
@@ -160,11 +225,20 @@ int main(int argc, char *args[])
         printf("Starting consumer %d\n", i);
         pthread_create(&threads[i], NULL, consumer, NULL); // Consumer
     }
-    // Create monitor thread
-    int interval = atoi(args[2]);
+    // Initialize monitor data
+    struct monitor_data mdata = {
+        interval : strtol(args[4], NULL, 10),
+        server_addr : {
+            sin_family : AF_INET,
+            sin_port : htons(monitor_port),
+            sin_addr : {
+                s_addr : inet_addr(monitor_ip)
+            },
+        },
+    };
     printf("Starting monitor\n");
-    pthread_create(&threads[nConsumers + 1], NULL, monitor, &interval);
-    
+    pthread_create(&threads[nConsumers + 1], NULL, monitor, &mdata);
+
     // Wait for all threads to finish
     for (int i = 0; i < nConsumers + 1; i++)
     {
