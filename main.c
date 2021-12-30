@@ -1,7 +1,7 @@
 #include <pthread.h>
-#include <stdio.h> // printf
-#include <stdlib.h> // exit, strtol, malloc, free
-#include <unistd.h> // close, sleep
+#include <stdio.h>     // printf
+#include <stdlib.h>    // exit, strtol, malloc, free
+#include <unistd.h>    // close, sleep
 #include <arpa/inet.h> // inet_addr
 
 #define BUFFER_SIZE 10
@@ -11,16 +11,15 @@
 pthread_mutex_t mutex;
 pthread_cond_t canWrite, canRead;
 int buffer[BUFFER_SIZE];
-int w_idx = 0;  // Next free slot in the buffer
-int r_idx = 0;   // Next slot to be read by a consumer
+int w_idx = 0;     // Next free slot in the buffer
+int r_idx = 0;     // Next slot to be read by a consumer
 char finished = 0; // True when the producer has produced N_MESSAGES messages
 int produced = 0;  // Number of messages produced
-int *consumed; // Array of integers keeping track of the number of messages consumed by each consumer
-
+int* consumed;     // Array of integers keeping track of the number of messages consumed by each consumer
 
 /**
  * @brief Stops the current thread for a given amount of seconds.
- * 
+ *
  * @param s Amount of seconds to wait.
  */
 static void wait_s(long s)
@@ -31,7 +30,7 @@ static void wait_s(long s)
 /**
  * @brief Stops the current thread for a random amount of nanoseconds.
  * The amount of nanoseconds to wait is between 0 and max_ns.
- * 
+ *
  * @param max_ns Maximum amount of nanoseconds to wait.
  */
 static void random_wait_ns(long max_ns)
@@ -47,10 +46,10 @@ static void random_wait_ns(long max_ns)
  * @brief Produces a message and puts it in the buffer as long as
  * there is space. Signals the consumer threads that there is a new
  * message when it produces.
- * 
+ *
  * @param arg Unused
  */
-static void *producer(void *arg)
+static void* producer(void* arg)
 {
     for (int i = 0; i < N_MESSAGES; i++)
     {
@@ -88,13 +87,13 @@ static void *producer(void *arg)
  * the producer thread that the buffer is not full when it consumes.
  * The message consumption is simulated by sleeping for a random amount
  * of time.
- * 
+ *
  * @param arg consumer_id: int
  */
-static void *consumer(void *arg)
+static void* consumer(void* arg)
 {
     // Argument parsing
-    int consumer_id = *((int *)arg);
+    int consumer_id = *((int*)arg);
 
     int consumed_item;
     while (1)
@@ -138,13 +137,13 @@ struct monitor_params
 /**
  * @brief Reads the length of the buffer at a given interval of time
  * and sends it to a monitor server.
- * 
+ *
  * @param arg monitor_params struct containing the interval, the number of consumers and the server address.
  */
-static void *monitor(void *arg)
+static void* monitor(void* arg)
 {
     // Arguments parsing
-    struct monitor_params *data = (struct monitor_params *)arg;
+    struct monitor_params* data = (struct monitor_params*)arg;
     int interval = data->interval;
     int nConsumers = data->nConsumers;
     struct sockaddr_in server_addr = data->server_addr;
@@ -157,7 +156,7 @@ static void *monitor(void *arg)
         perror("[Monitor thread]: socket creation failed");
         exit(EXIT_FAILURE);
     }
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("[Monitor thread]: socket connection failed");
         exit(EXIT_FAILURE);
@@ -211,7 +210,7 @@ static void *monitor(void *arg)
     return NULL;
 }
 
-int main(int argc, char *args[])
+int main(int argc, char* args[])
 {
     // Variables declaration
     int nConsumers;      // Number of consumer threads
@@ -243,20 +242,20 @@ int main(int argc, char *args[])
     for (int i = 1; i < nConsumers + 1; i++)
     {
         printf("Starting consumer %d\n", i);
-        int *id = malloc(sizeof(*id));
+        int* id = malloc(sizeof(*id));
         *id = i;
         pthread_create(&threads[i], NULL, consumer, id); // Consumer
     }
 
     // Gather required monitor parameters
     struct monitor_params mparams = {
-        interval : strtol(args[4], NULL, 10),
+        interval: strtol(args[4], NULL, 10),
         nConsumers : nConsumers,
         server_addr : {
-            sin_family : AF_INET,
+            sin_family: AF_INET,
             sin_port : htons(monitor_port),
             sin_addr : {
-                s_addr : inet_addr(monitor_ip)
+                s_addr: inet_addr(monitor_ip)
             },
         },
     };

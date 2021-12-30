@@ -1,9 +1,9 @@
-#include <stdio.h> // printf
+#include <stdio.h>  // printf
 #include <stdlib.h> // exit
 #include <unistd.h> // close
 #include <arpa/inet.h>
 
-static int receive(int sd, char *retBuf, int size)
+static int receive(int sd, char* retBuf, int size)
 {
     int totSize, currSize;
     totSize = 0;
@@ -18,7 +18,7 @@ static int receive(int sd, char *retBuf, int size)
     return 0;
 }
 
-int main(int argc, char *args[])
+int main(int argc, char* args[])
 {
     int port, socketfd;
     if (argc < 2)
@@ -28,10 +28,10 @@ int main(int argc, char *args[])
     }
     port = strtol(args[1], NULL, 10);
     struct sockaddr_in servaddr = {
-        sin_family : AF_INET,
+        sin_family: AF_INET,
         sin_port : htons(port),
         sin_addr : {
-            s_addr : INADDR_ANY
+            s_addr: INADDR_ANY
         },
     };
     // Create a new socket
@@ -42,7 +42,7 @@ int main(int argc, char *args[])
         exit(EXIT_FAILURE);
     }
     // Bind the socket to the specified port number
-    if (bind(socketfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    if (bind(socketfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
         perror("Socket bind failed");
         exit(EXIT_FAILURE);
@@ -59,7 +59,7 @@ int main(int argc, char *args[])
         int new_socket;
         struct sockaddr_in address;
         int addrlen = sizeof(address);
-        new_socket = accept(socketfd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
+        new_socket = accept(socketfd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         if (new_socket < 0)
         {
             perror("Socket accept failed");
@@ -67,7 +67,7 @@ int main(int argc, char *args[])
         }
         printf("[Monitor server]: Accepted connection from %s\n", inet_ntoa(address.sin_addr));
         int nConsumers = 0;
-        if (receive(new_socket, (char *)&nConsumers, sizeof(int)) < 0)
+        if (receive(new_socket, (char*)&nConsumers, sizeof(int)) < 0)
         {
             perror("Socket receive failed");
             exit(EXIT_FAILURE);
@@ -76,7 +76,7 @@ int main(int argc, char *args[])
         int monitor_msg[nConsumers + 2];
         while (1)
         {
-            if (receive(new_socket, (char *)&monitor_msg, sizeof(monitor_msg)) < 0)
+            if (receive(new_socket, (char*)&monitor_msg, sizeof(monitor_msg)) < 0)
             {
                 //perror("Socket receive failed");
                 //exit(EXIT_FAILURE);
