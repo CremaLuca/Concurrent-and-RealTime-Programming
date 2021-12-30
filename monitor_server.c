@@ -1,8 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <stdio.h> // printf
+#include <stdlib.h> // exit
+#include <unistd.h> // close
 #include <arpa/inet.h>
 
 static int receive(int sd, char *retBuf, int size)
@@ -13,7 +11,7 @@ static int receive(int sd, char *retBuf, int size)
     {
         currSize = recv(sd, &retBuf[totSize], size - totSize, 0);
         if (currSize <= 0)
-            /* An error occurred */
+            // An error occurred
             return -1;
         totSize += currSize;
     }
@@ -36,7 +34,7 @@ int main(int argc, char *args[])
             s_addr : INADDR_ANY
         },
     };
-    /* Create a new socket */
+    // Create a new socket
     socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0)
     {

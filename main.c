@@ -1,10 +1,8 @@
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+#include <stdio.h> // printf
+#include <stdlib.h> // exit, strtol, malloc, free
+#include <unistd.h> // close, sleep
+#include <arpa/inet.h> // inet_addr
 
 #define BUFFER_SIZE 10
 #define N_MESSAGES 1000 // Number of messages produced by the producer
@@ -13,24 +11,12 @@
 pthread_mutex_t mutex;
 pthread_cond_t canWrite, canRead;
 int buffer[BUFFER_SIZE];
-int writeIdx = 0;  // Next free slot in the buffer
-int readIdx = 0;   // Next slot to be read by a consumer
-char finished = 0; // True when the producer has produced all messages
+int w_idx = 0;  // Next free slot in the buffer
+int r_idx = 0;   // Next slot to be read by a consumer
+char finished = 0; // True when the producer has produced N_MESSAGES messages
 int produced = 0;  // Number of messages produced
-int *consumed;
+int *consumed; // Array of integers keeping track of the number of messages consumed by each consumer
 
-/**
- * @brief Stops the current thread for a given amount of nanoseconds.
- * 
- * @param ns Amount of nanoseconds to wait.
- */
-static void wait_ns(long ns)
-{
-    static struct timespec waitTime;
-    waitTime.tv_sec = 0;
-    waitTime.tv_nsec = ns;
-    nanosleep(&waitTime, NULL);
-}
 
 /**
  * @brief Stops the current thread for a given amount of seconds.
@@ -71,15 +57,15 @@ static void *producer(void *arg)
         // Simulate a message production
         random_wait_ns(3E8);
         pthread_mutex_lock(&mutex);
-        while ((writeIdx + 1) % BUFFER_SIZE == readIdx)
+        while ((w_idx + 1) % BUFFER_SIZE == r_idx)
         {
             pthread_cond_wait(&canWrite, &mutex);
         }
 #ifdef DEBUG
         printf("+ %d\n", i);
 #endif
-        buffer[writeIdx] = i; // Produce a message
-        writeIdx = (writeIdx + 1) % BUFFER_SIZE;
+        buffer[w_idx] = i; // Produce a message
+        w_idx = (w_idx + 1) % BUFFER_SIZE;
         produced += 1;
         // Tell consumers there is a new message
         pthread_cond_signal(&canRead);
@@ -95,44 +81,54 @@ static void *producer(void *arg)
     pthread_mutex_unlock(&mutex);
     return NULL;
 }
+
 /**
- * @brief 
+ * @brief Consumes a message from the buffer if there is one, otherwise
+ * it waits until there is one or the producer has finished. Signals
+ * the producer thread that the buffer is not full when it consumes.
+ * The message consumption is simulated by sleeping for a random amount
+ * of time.
  * 
- * @param arg consumer_id
+ * @param arg consumer_id: int
  */
 static void *consumer(void *arg)
 {
-    int item;
+    // Argument parsing
     int consumer_id = *((int *)arg);
+
+    int consumed_item;
     while (1)
     {
         pthread_mutex_lock(&mutex);
         // Wait for a new message
-        while (!finished && readIdx == writeIdx)
+        while (!finished && r_idx == w_idx)
         {
             pthread_cond_wait(&canRead, &mutex);
         }
         // Check if the producer has finished producing
-        if (finished && readIdx == writeIdx)
+        if (finished && r_idx == w_idx)
         {
             pthread_mutex_unlock(&mutex);
             break;
         }
-        item = buffer[readIdx];
-        readIdx = (readIdx + 1) % BUFFER_SIZE; // Shift forward the read index
+        consumed_item = buffer[r_idx];
+        r_idx = (r_idx + 1) % BUFFER_SIZE; // Shift the read index
         consumed[consumer_id - 1] += 1;
         pthread_cond_signal(&canWrite);
         pthread_mutex_unlock(&mutex);
-// Complex operation
 #ifdef DEBUG
-        printf("- %d\n", item);
+        printf("- %d\n", consumed_item);
 #endif
+        // Simulate complex operation
         random_wait_ns(1E9);
     }
     return NULL;
 }
 
-struct monitor_data
+/**
+ * @brief Struct containing the parameters for the monitor thread.
+ */
+struct monitor_params
 {
     int interval;
     int nConsumers;
@@ -143,24 +139,25 @@ struct monitor_data
  * @brief Reads the length of the buffer at a given interval of time
  * and sends it to a monitor server.
  * 
- * @param arg Pointer to an integer that contains the interval of time in us.
+ * @param arg monitor_params struct containing the interval, the number of consumers and the server address.
  */
 static void *monitor(void *arg)
 {
-    // Parse thread arguments
-    struct monitor_data *data = (struct monitor_data *)arg;
+    // Arguments parsing
+    struct monitor_params *data = (struct monitor_params *)arg;
     int interval = data->interval;
     int nConsumers = data->nConsumers;
+    struct sockaddr_in server_addr = data->server_addr;
+
     // Open a socket to the monitor server
     int sockfd;
-    struct sockaddr_in server_addr = data->server_addr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
         perror("[Monitor thread]: socket creation failed");
         exit(EXIT_FAILURE);
     }
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("[Monitor thread]: socket connection failed");
         exit(EXIT_FAILURE);
@@ -174,36 +171,34 @@ static void *monitor(void *arg)
         perror("[Monitor thread]: number of consumers send failed");
         exit(EXIT_FAILURE);
     }
-    int length;
-    unsigned int netLength;
+    int queue_length;
     while (1)
     {
         pthread_mutex_lock(&mutex);
-        length = (writeIdx - readIdx + BUFFER_SIZE) % BUFFER_SIZE;
+        queue_length = (w_idx - r_idx + BUFFER_SIZE) % BUFFER_SIZE;
         // NOTE: Last length 0 will never be notified to the monitor server
-        if (finished && readIdx == writeIdx)
+        if (finished && r_idx == w_idx)
         {
             pthread_mutex_unlock(&mutex);
             break;
         }
         pthread_mutex_unlock(&mutex);
 #ifdef DEBUG
-        printf("[Monitor thread]: queue: %d, produced: %d,", length, produced);
+        printf("[Monitor thread]: queue: %d, produced: %d,", queue_length, produced);
         for (int i = 0; i < nConsumers; i++)
         {
             printf(" [%d]: %d", i, consumed[i]);
         }
         printf("\n");
 #endif
-        // TODO:
-        int monitor_msg[nConsumers + 2];
-        monitor_msg[0] = htonl(length);
+        int monitor_msg[nConsumers + 2]; // Array of integer messages to send
+        monitor_msg[0] = htonl(queue_length);
         monitor_msg[1] = htonl(produced);
         for (int i = 0; i < nConsumers; i++)
         {
             monitor_msg[i + 2] = htonl(consumed[i]);
         }
-        // Actually send the length value
+        // Send the message to the monitor server
         if (send(sockfd, &monitor_msg, sizeof(monitor_msg), 0) < 0)
         {
             perror("[Monitor thread]: send failed");
@@ -252,8 +247,9 @@ int main(int argc, char *args[])
         *id = i;
         pthread_create(&threads[i], NULL, consumer, id); // Consumer
     }
-    // Initialize monitor data
-    struct monitor_data mdata = {
+
+    // Gather required monitor parameters
+    struct monitor_params mparams = {
         interval : strtol(args[4], NULL, 10),
         nConsumers : nConsumers,
         server_addr : {
@@ -265,7 +261,7 @@ int main(int argc, char *args[])
         },
     };
     printf("Starting monitor\n");
-    pthread_create(&threads[nConsumers + 1], NULL, monitor, &mdata);
+    pthread_create(&threads[nConsumers + 1], NULL, monitor, &mparams);
 
     // Wait for all threads to finish
     for (int i = 0; i < nConsumers + 1; i++)
