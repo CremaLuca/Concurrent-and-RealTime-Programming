@@ -10,14 +10,14 @@ debug: LDLIBS += -DDEBUG -g
 debug: all
 
 
-o1: LDLIBS += -o1
-o1: all
+O1: LDLIBS += -O1
+O1: all
 
-o2: LDLIBS += -o2
-o2: all
+O2: LDLIBS += -O2
+O2: all
 
-o3: LDLIBS += -o3
-o3: all
+O3: LDLIBS += -O3
+O3: all
 
 clean:
 	rm -f $(PROGRAMS)

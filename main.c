@@ -27,10 +27,12 @@ int* consumed;     // Array of integers keeping track of the number of messages 
 
 /**
  * @brief Stops the current thread for a given amount of seconds.
+ * 
+ * Marked inline to avoid the overhead of a function call.
  *
  * @param s Amount of seconds to wait.
  */
-static void wait_s(long s)
+static inline void wait_s(long s)
 {
     sleep(s);
 }
@@ -38,10 +40,12 @@ static void wait_s(long s)
 /**
  * @brief Stops the current thread for a random amount of nanoseconds.
  * The amount of nanoseconds to wait is between 0 and max_ns.
+ * 
+ * Marked inline to avoid the overhead of a function call.
  *
  * @param max_ns Maximum amount of nanoseconds to wait.
  */
-static void random_wait_ns(long max_ns)
+static inline void random_wait_ns(long max_ns)
 {
     static struct timespec waitTime;
     long ns = rand() % max_ns;
