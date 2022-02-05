@@ -239,7 +239,7 @@ int main(int argc, char* args[])
     }
     // Parse arguments
     nConsumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
-    sscanf(args[2], "%s", monitor_ip);
+    sscanf(args[2], "%15s", monitor_ip);  // Read up to 15 characters (+ terminator) of the monitor ip
     monitor_port = (int)strtol(args[3], NULL, 10);
 
     // Initialize mutex and condition variables
