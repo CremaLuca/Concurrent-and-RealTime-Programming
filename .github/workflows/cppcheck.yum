@@ -1,6 +1,9 @@
 name: cppcheck-action-test
-on: [push]
-branck-filter: master
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
