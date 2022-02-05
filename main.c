@@ -203,22 +203,25 @@ static void* monitor(void* arg)
         }
         printf("\n" RESET_C);
 #endif
+        // Prepare data to send to the monitor server
         int monitor_msg[nConsumers + 2]; // Array of integer messages to send
-        monitor_msg[0] = htonl(queue_length);
-        monitor_msg[1] = htonl(produced);
+        monitor_msg[0] = htonl(queue_length);  // First element is the queue length
+        monitor_msg[1] = htonl(produced);     // Second element is the number of produced messages so far
         for (int i = 0; i < nConsumers; i++)
         {
+            // Third to last elements are the number of consumed messages by each consumer
             monitor_msg[i + 2] = htonl(consumed[i]);
         }
         // Send the message to the monitor server
         if (send(sockfd, &monitor_msg, sizeof(monitor_msg), 0) < 0)
         {
-            perror("[Monitor thread]: send failed");
+            perror("[Monitor thread]: data send failed");
             exit(EXIT_FAILURE);
         }
         // Wait for the next sample time
         wait_s(interval);
     }
+    // Close the socket with the monitor server
     close(sockfd);
     return NULL;
 }
