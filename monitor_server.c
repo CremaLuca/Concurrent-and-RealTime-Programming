@@ -69,6 +69,7 @@ int main(int argc, char* args[])
         int new_socket;
         struct sockaddr_in address;
         int addrlen = sizeof(address);
+        printf("[Monitor server]: Ready, waiting for incoming connections.\n");
         new_socket = accept(socketfd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         if (new_socket < 0)
         {
