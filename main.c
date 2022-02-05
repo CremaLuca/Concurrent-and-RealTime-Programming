@@ -47,9 +47,10 @@ static inline void wait_s(long s)
  */
 static inline void random_wait_ns(long max_ns)
 {
-    static struct timespec waitTime;
     long ns = rand() % max_ns;
-    waitTime.tv_sec = 0;
+    static struct timespec waitTime = {
+        .tv_sec = 0
+    };
     waitTime.tv_nsec = ns;
     nanosleep(&waitTime, NULL);
 }

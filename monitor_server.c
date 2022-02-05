@@ -3,10 +3,20 @@
 #include <unistd.h> // close
 #include <arpa/inet.h>
 
-static int receive(int sd, char* retBuf, int size)
+
+/**
+ * @brief Reads a message from the socket and writes it to the given buffer.
+ * 
+ * Marked inline to avoid the overhead of a function call.
+ * 
+ * @param sd Accepted socket connection.
+ * @param retBuf Buffer where read data is stored.
+ * @param size Maximum buffer size, must be at least 1.
+ * @return 0 if successful, -1 otherwise
+ */
+static inline int receive(int sd, char* retBuf, int size)
 {
-    int totSize, currSize;
-    totSize = 0;
+    int totSize = 0, currSize;
     while (totSize < size)
     {
         currSize = recv(sd, &retBuf[totSize], size - totSize, 0);

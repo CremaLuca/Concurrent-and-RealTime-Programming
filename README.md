@@ -15,3 +15,11 @@ make all
 ./monitor_server <monitor port>
 ./main <# consumers> <monitor ip> <monitor port> <monitor interval [s]>
 ```
+
+## Extra
+
+Check which functions get inlined by the compiler.
+
+```bash
+gcc -O3 -fopt-info-inline-optimized-missed=missed.txt main.c -o main
+```
