@@ -1,6 +1,3 @@
-main.c:242:5: warning: sscanf() without field width limits can crash with huge input data. [invalidscanf]
-    sscanf(args[2], "%s", monitor_ip);
-    ^
 main.c:268:9: style: Label 'interval' is not used. [unusedLabel]
         interval: strtol(args[4], NULL, 10),
         ^
