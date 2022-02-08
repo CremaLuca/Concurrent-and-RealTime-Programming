@@ -15,13 +15,16 @@
 #define MONITOR_C "\x1B[35m"
 #define RESET_C "\x1B[0m"
 
+#define FALSE 0
+#define TRUE 1
+
 // Inter-process communication (IPC) variables
 pthread_mutex_t mutex;
 pthread_cond_t canWrite, canRead;
 int buffer[BUFFER_SIZE];
 int w_idx = 0;     // Next free slot in the buffer
 int r_idx = 0;     // Next slot to be read by a consumer
-char finished = 0; // True when the producer has produced N_MESSAGES messages
+char finished = FALSE; // True when the producer has produced N_MESSAGES messages
 int produced = 0;  // Number of messages produced
 int* consumed;     // Array of integers keeping track of the number of messages consumed by each consumer
 
@@ -85,7 +88,7 @@ static void* producer(void* arg)
     }
     // Broadcast all consumers that the producer has finished producing
     pthread_mutex_lock(&mutex);
-    finished = 1;
+    finished = TRUE;
 #ifdef DEBUG
     printf(PRODUCER_C "[Producer]: finished.\n" RESET_C);
 #endif
