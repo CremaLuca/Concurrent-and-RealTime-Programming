@@ -8,12 +8,38 @@ Producer-(multiple) consumers program with remote status monitoring. An actor (t
 
 ## Usage
 
-NOTE: Suggested number of consumers is 3 so that the queue fill level varies meaningfully.
+### Compile
+
+To compile the source code, use the following command:
 
 ```bash
 make all
+```
+
+If you want the extra debug information use
+
+```bash
+make debug
+```
+
+### Run
+
+NOTE: Suggested number of consumers is 3 so that the queue fill level varies meaningfully.
+
+#### Monitor server
+
+First, you have to run the monitor server.
+
+```bash
 ./monitor_server <monitor port>
-./main <# consumers> <monitor ip> <monitor port> <monitor interval [s]>
+```
+
+#### Client
+
+Then, you have to run the client with producers, consumers and the monitor thread.
+
+```bash
+./main <n. consumers> <monitor ip> <monitor port> <monitor interval [s]>
 ```
 
 ## Extra
