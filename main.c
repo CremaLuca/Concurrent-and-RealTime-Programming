@@ -107,6 +107,7 @@ static void* consumer(void* arg)
 {
     // Argument parsing
     int consumer_id = *((int*)arg);
+    free(arg);
 
     int consumed_item;
     while (1)
