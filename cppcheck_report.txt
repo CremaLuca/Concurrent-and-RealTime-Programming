@@ -1,13 +1,13 @@
-main.c:269:9: style: Label 'interval' is not used. [unusedLabel]
+main.c:272:9: style: Label 'interval' is not used. [unusedLabel]
         interval: strtol(args[4], NULL, 10),
         ^
-main.c:272:13: style: Label 'sin_family' is not used. [unusedLabel]
+main.c:275:13: style: Label 'sin_family' is not used. [unusedLabel]
             sin_family: AF_INET,
             ^
-main.c:275:17: style: Label 's_addr' is not used. [unusedLabel]
+main.c:278:17: style: Label 's_addr' is not used. [unusedLabel]
                 s_addr: inet_addr(monitor_ip)
                 ^
-main.c:127:23: style: Variable 'consumed_item' is assigned a value that is never used. [unreadVariable]
+main.c:130:23: style: Variable 'consumed_item' is assigned a value that is never used. [unreadVariable]
         consumed_item = buffer[r_idx];
                       ^
 monitor_server.c:19:22: style: The scope of the variable 'currSize' can be reduced. [variableScope]
