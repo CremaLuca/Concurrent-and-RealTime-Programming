@@ -35,7 +35,7 @@ int* consumed;     // Array of integers keeping track of the number of messages 
  *
  * @param s Amount of seconds to wait.
  */
-static inline void wait_s(long s)
+static inline void wait_s(const long s)
 {
     sleep(s);
 }
@@ -48,7 +48,7 @@ static inline void wait_s(long s)
  *
  * @param max_ns Maximum amount of nanoseconds to wait.
  */
-static inline void random_wait_ns(long max_ns)
+static inline void random_wait_ns(const long max_ns)
 {
     long ns = rand() % max_ns;
     static struct timespec waitTime = {
@@ -109,7 +109,7 @@ static void* producer(void* arg)
 static void* consumer(void* arg)
 {
     // Argument parsing
-    int consumer_id = *((int*)arg);
+    const int consumer_id = *((int*)arg);
     free(arg);
 
     int consumed_item;
@@ -160,10 +160,10 @@ struct monitor_params
 static void* monitor(void* arg)
 {
     // Arguments parsing
-    struct monitor_params* data = (struct monitor_params*)arg;
-    int interval = data->interval;
-    int nConsumers = data->nConsumers;
-    struct sockaddr_in server_addr = data->server_addr;
+    const struct monitor_params* data = (struct monitor_params*)arg;
+    const int interval = data->interval;
+    const int nConsumers = data->nConsumers;
+    const struct sockaddr_in server_addr = data->server_addr;
 
     // Open a socket to the monitor server
     int sockfd;
@@ -232,19 +232,16 @@ static void* monitor(void* arg)
 
 int main(int argc, char* args[])
 {
-    // Variables declaration
-    int nConsumers;      // Number of consumer threads
-    char monitor_ip[16]; // Hostname of the monitor server
-    int monitor_port;    // Port of the monitor server
     if (argc != 5)
     {
         printf("Usage: %s <# consumers:int> <monitor ip:char*> <monitor port:int> <monitor interval:int [s]>\n", args[0]);
         exit(EXIT_FAILURE);
     }
     // Parse arguments
-    nConsumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
+    const int nConsumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
+    char monitor_ip[16]; // Hostname of the monitor server
     sscanf(args[2], "%15s", monitor_ip);  // Read up to 15 characters (+ terminator) of the monitor ip
-    monitor_port = (int)strtol(args[3], NULL, 10);
+    const int monitor_port = (int)strtol(args[3], NULL, 10);
 
     // Initialize mutex and condition variables
     pthread_mutex_init(&mutex, NULL);

@@ -14,7 +14,7 @@
  * @param size Maximum buffer size, must be at least 1.
  * @return 0 if successful, -1 otherwise
  */
-static inline int receive(int sd, char* retBuf, int size)
+static inline int receive(const int sd, char* retBuf, const int size)
 {
     int totSize = 0, currSize;
     while (totSize < size)
@@ -30,13 +30,13 @@ static inline int receive(int sd, char* retBuf, int size)
 
 int main(int argc, char* args[])
 {
-    int port, socketfd;
     if (argc < 2)
     {
         printf("Usage: %s <port>\n", args[0]);
         exit(EXIT_FAILURE);
     }
-    port = strtol(args[1], NULL, 10);
+    // Parse port argument
+    const int port = strtol(args[1], NULL, 10);
     struct sockaddr_in servaddr = {
         sin_family: AF_INET,
         sin_port : htons(port),
@@ -45,7 +45,7 @@ int main(int argc, char* args[])
         },
     };
     // Create a new socket
-    socketfd = socket(AF_INET, SOCK_STREAM, 0);
+    const int socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0)
     {
         perror("Socket creation failed");
@@ -66,11 +66,10 @@ int main(int argc, char* args[])
     // Accept and serve all incoming connections in a loop
     while (1)
     {
-        int new_socket;
         struct sockaddr_in address;
         int addrlen = sizeof(address);
         printf("[Monitor server]: Ready, waiting for incoming connections.\n");
-        new_socket = accept(socketfd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+        const int new_socket = accept(socketfd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         if (new_socket < 0)
         {
             perror("Socket accept failed");
