@@ -113,7 +113,7 @@ static void* consumer(void* arg)
     free(arg);
 
     int consumed_item;
-    while (1)
+    while (TRUE)
     {
         pthread_mutex_lock(&mutex);
         // Wait for a new message
@@ -186,7 +186,7 @@ static void* monitor(void* arg)
         perror("[Monitor thread]: number of consumers send failed");
         exit(EXIT_FAILURE);
     }
-    while (1)
+    while (TRUE)
     {
         pthread_mutex_lock(&mutex);
         const int queue_length = (w_idx - r_idx + BUFFER_SIZE) % BUFFER_SIZE;

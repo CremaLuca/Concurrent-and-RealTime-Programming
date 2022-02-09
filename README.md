@@ -47,5 +47,5 @@ Then, you have to run the client with producers, consumers and the monitor threa
 Check which functions get inlined by the compiler.
 
 ```bash
-gcc -O3 -fopt-info-inline-optimized-missed=missed.txt main.c -o main
+gcc -O3 -fopt-info-inline-optimized-missed=missed.txt main.c -o main -lpthread
 ```
