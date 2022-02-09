@@ -165,9 +165,8 @@ static void* monitor(void* arg)
     const int nConsumers = data->nConsumers;
     const struct sockaddr_in server_addr = data->server_addr;
 
-    // Open a socket to the monitor server
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    // Open a socket to the monitor serve
+    const int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
         perror("[Monitor thread]: socket creation failed");
@@ -187,11 +186,10 @@ static void* monitor(void* arg)
         perror("[Monitor thread]: number of consumers send failed");
         exit(EXIT_FAILURE);
     }
-    int queue_length;
     while (1)
     {
         pthread_mutex_lock(&mutex);
-        queue_length = (w_idx - r_idx + BUFFER_SIZE) % BUFFER_SIZE;
+        const int queue_length = (w_idx - r_idx + BUFFER_SIZE) % BUFFER_SIZE;
         // NOTE: Last length 0 will never be notified to the monitor server
         if (finished && r_idx == w_idx)
         {

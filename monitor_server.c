@@ -16,10 +16,10 @@
  */
 static inline int receive(const int sd, char* retBuf, const int size)
 {
-    int totSize = 0, currSize;
+    int totSize = 0;
     while (totSize < size)
     {
-        currSize = recv(sd, &retBuf[totSize], size - totSize, 0);
+        const int currSize = recv(sd, &retBuf[totSize], size - totSize, 0);
         if (currSize <= 0)
             // An error occurred
             return -1;
