@@ -38,6 +38,7 @@ int main(int argc, char* args[])
         printf("Usage: %s <port>\n", args[0]);
         exit(EXIT_FAILURE);
     }
+
     // Parse port argument
     const int port = strtol(args[1], NULL, 10);
     struct sockaddr_in servaddr = {
@@ -47,6 +48,7 @@ int main(int argc, char* args[])
             s_addr: INADDR_ANY
         },
     };
+
     // Create a new socket
     const int socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0)
@@ -54,18 +56,21 @@ int main(int argc, char* args[])
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
+
     // Bind the socket to the specified port number
     if (bind(socketfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0)
     {
         perror("Socket bind failed");
         exit(EXIT_FAILURE);
     }
+
     // Set the maximum queue length for clients requesting connection to 5
     if (listen(socketfd, 5) < 0)
     {
         perror("Socket connection listen failed");
         exit(EXIT_FAILURE);
     }
+
     // Accept and serve all incoming connections in a loop
     while (TRUE)
     {
@@ -79,6 +84,8 @@ int main(int argc, char* args[])
             exit(EXIT_FAILURE);
         }
         printf("[Monitor server]: Accepted connection from %s\n", inet_ntoa(address.sin_addr));
+
+        // Receive the number of consumers as first message
         int n_consumers = 0;
         if (receive(new_socket, (char*)&n_consumers, sizeof(int)) < 0)
         {
@@ -86,6 +93,7 @@ int main(int argc, char* args[])
             exit(EXIT_FAILURE);
         }
         printf("[Monitor server]: Correctly received the number of consumers: %d.\n", n_consumers);
+
         int monitor_msg[n_consumers + 2];
         while (TRUE)
         {
