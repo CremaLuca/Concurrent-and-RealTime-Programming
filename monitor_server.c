@@ -3,12 +3,15 @@
 #include <unistd.h> // close
 #include <arpa/inet.h>
 
+#define TRUE 1
+#define FALSE 0
+
 
 /**
  * @brief Reads a message from the socket and writes it to the given buffer.
- * 
+ *
  * Marked inline to avoid the overhead of a function call.
- * 
+ *
  * @param sd Accepted socket connection.
  * @param retBuf Buffer where read data is stored.
  * @param size Maximum buffer size, must be at least 1.
@@ -64,7 +67,7 @@ int main(int argc, char* args[])
         exit(EXIT_FAILURE);
     }
     // Accept and serve all incoming connections in a loop
-    while (1)
+    while (TRUE)
     {
         struct sockaddr_in address;
         int addrlen = sizeof(address);
@@ -84,7 +87,7 @@ int main(int argc, char* args[])
         }
         printf("[Monitor server]: Correctly received the number of consumers: %d.\n", nConsumers);
         int monitor_msg[nConsumers + 2];
-        while (1)
+        while (TRUE)
         {
             if (receive(new_socket, (char*)&monitor_msg, sizeof(monitor_msg)) < 0)
             {
