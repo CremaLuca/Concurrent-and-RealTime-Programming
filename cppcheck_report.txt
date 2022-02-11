@@ -10,10 +10,10 @@ main.c:273:17: style: Label 's_addr' is not used. [unusedLabel]
 main.c:130:23: style: Variable 'consumed_item' is assigned a value that is never used. [unreadVariable]
         consumed_item = buffer[r_idx];
                       ^
-monitor_server.c:41:9: style: Label 'sin_family' is not used. [unusedLabel]
+monitor_server.c:44:9: style: Label 'sin_family' is not used. [unusedLabel]
         sin_family: AF_INET,
         ^
-monitor_server.c:44:13: style: Label 's_addr' is not used. [unusedLabel]
+monitor_server.c:47:13: style: Label 's_addr' is not used. [unusedLabel]
             s_addr: INADDR_ANY
             ^
 nofile:0:0: information: Cppcheck cannot find all the include files (use --check-config for details) [missingIncludeSystem]
