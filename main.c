@@ -251,18 +251,25 @@ int main(int argc, char* args[])
     printf("[Main]: Starting producer\n");
     pthread_create(&threads[0], NULL, producer, NULL); // Producer
 
+    // Allocate memory for consumed items counters
+    consumed = malloc(sizeof(int) * n_consumers);
+    if(consumed == NULL)
+    {
+        perror("[Main]: consumed malloc failed");
+        exit(EXIT_FAILURE);
+    }
+
     // Create consumer threads
     printf("[Main]: Creating %d consumer threads\n", n_consumers);
-    consumed = malloc(sizeof(int) * n_consumers); // Allocate memory for consumed counters
     for (int i = 1; i < n_consumers + 1; i++)
     {
         printf("[Main]: Starting consumer %d\n", i);
         int* id = malloc(sizeof(*id));
         if (id == NULL){
-            perror("[Main]: malloc failed");
+            perror("[Main]: id malloc failed");
             exit(EXIT_FAILURE);
         }
-        
+
         // Assing value to allocated memory for id
         *id = i;
         pthread_create(&threads[i], NULL, consumer, id); // Consumer
