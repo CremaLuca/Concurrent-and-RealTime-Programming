@@ -258,6 +258,12 @@ int main(int argc, char* args[])
     {
         printf("[Main]: Starting consumer %d\n", i);
         int* id = malloc(sizeof(*id));
+        if (id == NULL){
+            perror("[Main]: malloc failed");
+            exit(EXIT_FAILURE);
+        }
+        
+        // Assing value to allocated memory for id
         *id = i;
         pthread_create(&threads[i], NULL, consumer, id); // Consumer
     }
