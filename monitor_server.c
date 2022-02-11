@@ -13,20 +13,20 @@
  * Marked inline to avoid the overhead of a function call.
  *
  * @param sd Accepted socket connection.
- * @param retBuf Buffer where read data is stored.
+ * @param ret_buffer Buffer where read data is stored.
  * @param size Maximum buffer size, must be at least 1.
  * @return 0 if successful, -1 otherwise
  */
-static inline int receive(const int sd, char* retBuf, const int size)
+static inline int receive(const int sd, char* ret_buffer, const int size)
 {
-    int totSize = 0;
-    while (totSize < size)
+    int tot_size = 0;
+    while (tot_size < size)
     {
-        const int currSize = recv(sd, &retBuf[totSize], size - totSize, 0);
-        if (currSize <= 0)
+        const int curr_size = recv(sd, &ret_buffer[tot_size], size - tot_size, 0);
+        if (curr_size <= 0)
             // An error occurred
             return -1;
-        totSize += currSize;
+        tot_size += curr_size;
     }
     return 0;
 }
@@ -79,14 +79,14 @@ int main(int argc, char* args[])
             exit(EXIT_FAILURE);
         }
         printf("[Monitor server]: Accepted connection from %s\n", inet_ntoa(address.sin_addr));
-        int nConsumers = 0;
-        if (receive(new_socket, (char*)&nConsumers, sizeof(int)) < 0)
+        int n_consumers = 0;
+        if (receive(new_socket, (char*)&n_consumers, sizeof(int)) < 0)
         {
             perror("Socket receive failed");
             exit(EXIT_FAILURE);
         }
-        printf("[Monitor server]: Correctly received the number of consumers: %d.\n", nConsumers);
-        int monitor_msg[nConsumers + 2];
+        printf("[Monitor server]: Correctly received the number of consumers: %d.\n", n_consumers);
+        int monitor_msg[n_consumers + 2];
         while (TRUE)
         {
             if (receive(new_socket, (char*)&monitor_msg, sizeof(monitor_msg)) < 0)
@@ -97,7 +97,7 @@ int main(int argc, char* args[])
                 break;
             }
             printf("[Monitor server]: queue: %d, produced: %d", ntohl(monitor_msg[0]), ntohl(monitor_msg[1]));
-            for (int i = 2; i < nConsumers + 2; i++)
+            for (int i = 2; i < n_consumers + 2; i++)
             {
                 printf(", [%d]: %d", i - 2, ntohl(monitor_msg[i]));
             }

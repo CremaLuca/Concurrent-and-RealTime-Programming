@@ -20,7 +20,7 @@
 
 // Inter-process communication (IPC) variables
 pthread_mutex_t mutex;
-pthread_cond_t canWrite, canRead;
+pthread_cond_t can_write, can_read;
 int buffer[BUFFER_SIZE];
 int w_idx = 0;     // Next free slot in the buffer
 int r_idx = 0;     // Next slot to be read by a consumer
@@ -51,11 +51,11 @@ static inline void wait_s(const long s)
 static inline void random_wait_ns(const long max_ns)
 {
     long ns = rand() % max_ns;
-    static struct timespec waitTime = {
+    static struct timespec wait_time = {
         .tv_sec = 0
     };
-    waitTime.tv_nsec = ns;
-    nanosleep(&waitTime, NULL);
+    wait_time.tv_nsec = ns;
+    nanosleep(&wait_time, NULL);
 }
 
 /**
@@ -74,7 +74,7 @@ static void* producer(void* arg)
         pthread_mutex_lock(&mutex);
         while ((w_idx + 1) % BUFFER_SIZE == r_idx)
         {
-            pthread_cond_wait(&canWrite, &mutex);
+            pthread_cond_wait(&can_write, &mutex);
         }
 #ifdef DEBUG
         printf(PRODUCER_C "[P ]: + %d\n" RESET_C, i);
@@ -83,7 +83,7 @@ static void* producer(void* arg)
         w_idx = (w_idx + 1) % BUFFER_SIZE;
         produced += 1;
         // Tell consumers there is a new message
-        pthread_cond_signal(&canRead);
+        pthread_cond_signal(&can_read);
         pthread_mutex_unlock(&mutex);
     }
     // Broadcast all consumers that the producer has finished producing
@@ -92,7 +92,7 @@ static void* producer(void* arg)
 #ifdef DEBUG
     printf(PRODUCER_C "[Producer]: finished.\n" RESET_C);
 #endif
-    pthread_cond_broadcast(&canRead);
+    pthread_cond_broadcast(&can_read);
     pthread_mutex_unlock(&mutex);
     return NULL;
 }
@@ -119,7 +119,7 @@ static void* consumer(void* arg)
         // Wait for a new message
         while (!finished && r_idx == w_idx)
         {
-            pthread_cond_wait(&canRead, &mutex);
+            pthread_cond_wait(&can_read, &mutex);
         }
         // Check if the producer has finished producing
         if (finished && r_idx == w_idx)
@@ -130,7 +130,7 @@ static void* consumer(void* arg)
         consumed_item = buffer[r_idx];
         r_idx = (r_idx + 1) % BUFFER_SIZE; // Shift the read index
         consumed[consumer_id - 1] += 1;
-        pthread_cond_signal(&canWrite);
+        pthread_cond_signal(&can_write);
         pthread_mutex_unlock(&mutex);
 #ifdef DEBUG
         printf(CONSUMER_C "[C%d]: - %d\n" RESET_C, consumer_id, consumed_item);
@@ -147,7 +147,7 @@ static void* consumer(void* arg)
 struct monitor_params
 {
     int interval;
-    int nConsumers;
+    int n_consumers;
     struct sockaddr_in server_addr;
 };
 
@@ -162,7 +162,7 @@ static void* monitor(void* arg)
     // Arguments parsing
     const struct monitor_params* data = (struct monitor_params*)arg;
     const int interval = data->interval;
-    const int nConsumers = data->nConsumers;
+    const int n_consumers = data->n_consumers;
     const struct sockaddr_in server_addr = data->server_addr;
 
     // Open a socket to the monitor serve
@@ -181,7 +181,7 @@ static void* monitor(void* arg)
     printf(MONITOR_C "[Monitor thread]: Connected to monitor server\n" RESET_C);
 #endif
     // Send the number of consumers to the monitor server
-    if (send(sockfd, &nConsumers, sizeof(nConsumers), 0) < 0)
+    if (send(sockfd, &n_consumers, sizeof(n_consumers), 0) < 0)
     {
         perror("[Monitor thread]: number of consumers send failed");
         exit(EXIT_FAILURE);
@@ -199,17 +199,17 @@ static void* monitor(void* arg)
         pthread_mutex_unlock(&mutex);
 #ifdef DEBUG
         printf(MONITOR_C "[Monitor thread]: queue: %d, produced: %d,", queue_length, produced);
-        for (int i = 0; i < nConsumers; i++)
+        for (int i = 0; i < n_consumers; i++)
         {
             printf(" [%d]: %d", i, consumed[i]);
         }
         printf("\n" RESET_C);
 #endif
         // Prepare data to send to the monitor server
-        int monitor_msg[nConsumers + 2]; // Array of integer messages to send
+        int monitor_msg[n_consumers + 2]; // Array of integer messages to send
         monitor_msg[0] = htonl(queue_length);  // First element is the queue length
         monitor_msg[1] = htonl(produced);     // Second element is the number of produced messages so far
-        for (int i = 0; i < nConsumers; i++)
+        for (int i = 0; i < n_consumers; i++)
         {
             // Third to last elements are the number of consumed messages by each consumer
             monitor_msg[i + 2] = htonl(consumed[i]);
@@ -236,25 +236,25 @@ int main(int argc, char* args[])
         exit(EXIT_FAILURE);
     }
     // Parse arguments
-    const int nConsumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
+    const int n_consumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
     char monitor_ip[16]; // Hostname of the monitor server
     sscanf(args[2], "%15s", monitor_ip);  // Read up to 15 characters (+ terminator) of the monitor ip
     const int monitor_port = (int)strtol(args[3], NULL, 10);
 
     // Initialize mutex and condition variables
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&canWrite, NULL);
-    pthread_cond_init(&canRead, NULL);
+    pthread_cond_init(&can_write, NULL);
+    pthread_cond_init(&can_read, NULL);
 
     // Create producer thread
-    pthread_t threads[nConsumers + 2];
+    pthread_t threads[n_consumers + 2];
     printf("[Main]: Starting producer\n");
     pthread_create(&threads[0], NULL, producer, NULL); // Producer
 
     // Create consumer threads
-    printf("[Main]: Creating %d consumer threads\n", nConsumers);
-    consumed = malloc(sizeof(int) * nConsumers); // Allocate memory for consumed counters
-    for (int i = 1; i < nConsumers + 1; i++)
+    printf("[Main]: Creating %d consumer threads\n", n_consumers);
+    consumed = malloc(sizeof(int) * n_consumers); // Allocate memory for consumed counters
+    for (int i = 1; i < n_consumers + 1; i++)
     {
         printf("[Main]: Starting consumer %d\n", i);
         int* id = malloc(sizeof(*id));
@@ -263,9 +263,9 @@ int main(int argc, char* args[])
     }
 
     // Gather required monitor parameters
-    struct monitor_params mparams = {
+    struct monitor_params m_params = {
         interval: strtol(args[4], NULL, 10),
-        nConsumers : nConsumers,
+        n_consumers : n_consumers,
         server_addr : {
             sin_family: AF_INET,
             sin_port : htons(monitor_port),
@@ -275,10 +275,10 @@ int main(int argc, char* args[])
         },
     };
     printf("[Main]: Starting monitor\n");
-    pthread_create(&threads[nConsumers + 1], NULL, monitor, &mparams);
+    pthread_create(&threads[n_consumers + 1], NULL, monitor, &m_params);
 
     // Wait for all threads to finish
-    for (int i = 0; i < nConsumers + 1; i++)
+    for (int i = 0; i < n_consumers + 1; i++)
     {
         pthread_join(threads[i], NULL);
     }
