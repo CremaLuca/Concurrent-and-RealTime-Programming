@@ -1,19 +1,19 @@
-main.c:280:9: style: Label 'interval' is not used. [unusedLabel]
+main.c:275:9: style: Label 'interval' is not used. [unusedLabel]
         interval: strtol(args[4], NULL, 10),
         ^
-main.c:283:13: style: Label 'sin_family' is not used. [unusedLabel]
+main.c:278:13: style: Label 'sin_family' is not used. [unusedLabel]
             sin_family: AF_INET,
             ^
-main.c:286:17: style: Label 's_addr' is not used. [unusedLabel]
+main.c:281:17: style: Label 's_addr' is not used. [unusedLabel]
                 s_addr: inet_addr(monitor_ip)
                 ^
-main.c:130:23: style: Variable 'consumed_item' is assigned a value that is never used. [unreadVariable]
+main.c:126:23: style: Variable 'consumed_item' is assigned a value that is never used. [unreadVariable]
         consumed_item = buffer[r_idx];
                       ^
-monitor_server.c:45:9: style: Label 'sin_family' is not used. [unusedLabel]
+monitor_server.c:43:9: style: Label 'sin_family' is not used. [unusedLabel]
         sin_family: AF_INET,
         ^
-monitor_server.c:48:13: style: Label 's_addr' is not used. [unusedLabel]
+monitor_server.c:46:13: style: Label 's_addr' is not used. [unusedLabel]
             s_addr: INADDR_ANY
             ^
 nofile:0:0: information: Cppcheck cannot find all the include files (use --check-config for details) [missingIncludeSystem]
