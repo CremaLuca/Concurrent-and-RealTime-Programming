@@ -5,7 +5,7 @@
 #include <arpa/inet.h> // inet_addr
 
 #define BUFFER_SIZE 10
-#define N_MESSAGES 1000 // Number of messages produced by the producer
+#define N_MESSAGES 1000       // Number of messages produced by the producer
 #define PRODUCER_MAX_WAIT 3E8 // Maximum random sleep time for a producer
 #define CONSUMER_MAX_WAIT 1E9 // Maximum random sleep time for a consumer
 
@@ -22,34 +22,32 @@
 pthread_mutex_t mutex;
 pthread_cond_t can_write, can_read;
 int buffer[BUFFER_SIZE];
-int w_idx = 0;     // Next free slot in the buffer
-int r_idx = 0;     // Next slot to be read by a consumer
+int w_idx = 0;         // Next free slot in the buffer
+int r_idx = 0;         // Next slot to be read by a consumer
 char finished = FALSE; // True when the producer has produced N_MESSAGES messages
-int produced = 0;  // Number of messages produced
-int* consumed;     // Array of integers keeping track of the number of messages consumed by each consumer
+int produced = 0;      // Number of messages produced
+int* consumed;         // Array of integers keeping track of the number of messages consumed by each consumer
 
 /**
  * @brief Stops the current thread for a given amount of seconds.
- * 
+ *
  * Marked inline to avoid the overhead of a function call.
  *
  * @param s Amount of seconds to wait.
  */
-static inline void wait_s(const long s)
-{
+static inline void wait_s(const long s) {
     sleep(s);
 }
 
 /**
  * @brief Stops the current thread for a random amount of nanoseconds.
  * The amount of nanoseconds to wait is between 0 and max_ns.
- * 
+ *
  * Marked inline to avoid the overhead of a function call.
  *
  * @param max_ns Maximum amount of nanoseconds to wait.
  */
-static inline void random_wait_ns(const long max_ns)
-{
+static inline void random_wait_ns(const long max_ns) {
     long ns = rand() % max_ns;
     static struct timespec wait_time = {
         .tv_sec = 0
@@ -65,8 +63,7 @@ static inline void random_wait_ns(const long max_ns)
  *
  * @param arg Unused
  */
-static void* producer(void* arg)
-{
+static void* producer(void* arg) {
     for (int i = 0; i < N_MESSAGES; i++)
     {
         // Simulate a message production
@@ -106,8 +103,7 @@ static void* producer(void* arg)
  *
  * @param arg consumer_id: int
  */
-static void* consumer(void* arg)
-{
+static void* consumer(void* arg) {
     // Argument parsing
     const int consumer_id = *((int*)arg);
     free(arg);
@@ -157,8 +153,7 @@ struct monitor_params
  *
  * @param arg monitor_params struct containing the interval, the number of consumers and the server address.
  */
-static void* monitor(void* arg)
-{
+static void* monitor(void* arg) {
     // Arguments parsing
     const struct monitor_params* data = (struct monitor_params*)arg;
     const int interval = data->interval;
@@ -228,14 +223,13 @@ static void* monitor(void* arg)
     return NULL;
 }
 
-int main(int argc, char* args[])
-{
+int main(int argc, char* args[]) {
     if (argc != 5)
     {
         printf("Usage: %s <# consumers:int> <monitor ip:char*> <monitor port:int> <monitor interval:int [s]>\n", args[0]);
         exit(EXIT_FAILURE);
     }
-    // Parse arguments
+    // Parse command line arguments
     const int n_consumers = (int)strtol(args[1], NULL, 10);  // Using strtol instead of atoi because of this SO answer https://stackoverflow.com/a/7021750/5764028
     char monitor_ip[16]; // Hostname of the monitor server
     sscanf(args[2], "%15s", monitor_ip);  // Read up to 15 characters (+ terminator) of the monitor ip
@@ -253,7 +247,7 @@ int main(int argc, char* args[])
 
     // Allocate memory for consumed items counters
     consumed = malloc(sizeof(int) * n_consumers);
-    if(consumed == NULL)
+    if (consumed == NULL)
     {
         perror("[Main]: consumed malloc failed");
         exit(EXIT_FAILURE);
@@ -265,12 +259,13 @@ int main(int argc, char* args[])
     {
         printf("[Main]: Starting consumer %d\n", i);
         int* id = malloc(sizeof(*id));
-        if (id == NULL){
+        if (id == NULL)
+        {
             perror("[Main]: id malloc failed");
             exit(EXIT_FAILURE);
         }
 
-        // Assing value to allocated memory for id
+        // Passing value to allocated memory for id
         *id = i;
         pthread_create(&threads[i], NULL, consumer, id); // Consumer
     }

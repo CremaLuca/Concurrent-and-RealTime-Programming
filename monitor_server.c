@@ -17,8 +17,7 @@
  * @param size Maximum buffer size, must be at least 1.
  * @return 0 if successful, -1 otherwise
  */
-static inline int receive(const int sd, char* ret_buffer, const int size)
-{
+static inline int receive(const int sd, char* ret_buffer, const int size) {
     int tot_size = 0;
     while (tot_size < size)
     {
@@ -31,8 +30,7 @@ static inline int receive(const int sd, char* ret_buffer, const int size)
     return 0;
 }
 
-int main(int argc, char* args[])
-{
+int main(int argc, char* args[]) {
     if (argc < 2)
     {
         printf("Usage: %s <port>\n", args[0]);
